@@ -1061,7 +1061,7 @@ class CPUID(object):
 
 		return ticks
 
-def _actual_get_cpu_info_from_cpuid(conn):
+def _actual_get_cpu_info_from_cpuid(queue):
 	'''
 	Warning! This function has the potential to crash the Python runtime.
 	Do not call it directly. Use the _get_cpu_info_from_cpuid function instead.
@@ -1073,15 +1073,13 @@ def _actual_get_cpu_info_from_cpuid(conn):
 
 	# Return none if this is not an X86 CPU
 	if not arch in ['X86_32', 'X86_64']:
-		conn.send(obj_to_b64({}))
-		conn.close()
+		queue.put(obj_to_b64({}))
 		return
 
 	# Return none if SE Linux is in enforcing mode
 	cpuid = CPUID()
 	if cpuid.is_selinux_enforcing:
-		conn.send(obj_to_b64({}))
-		conn.close()
+		queue.put(obj_to_b64({}))
 		return
 
 	# Get the cpu info from the CPUID register
@@ -1121,8 +1119,7 @@ def _actual_get_cpu_info_from_cpuid(conn):
 	}
 
 	info = {k: v for k, v in info.items() if v}
-	conn.send(obj_to_b64(info))
-	conn.close()
+	queue.put(obj_to_b64(info))
 
 def _get_cpu_info_from_cpuid():
 	'''
@@ -1130,7 +1127,7 @@ def _get_cpu_info_from_cpuid():
 	Returns {} on non X86 cpus.
 	Returns {} if SELinux is in enforcing mode.
 	'''
-	from multiprocessing import Process, Pipe
+	from multiprocessing import Process, Queue
 
 	# Return {} if can't cpuid
 	if not DataSource.can_cpuid:
@@ -1145,8 +1142,8 @@ def _get_cpu_info_from_cpuid():
 
 	try:
 		# Start running the function in a subprocess
-		parent_conn, child_conn = Pipe()
-		p = Process(target=_actual_get_cpu_info_from_cpuid, args=(child_conn,))
+		queue = Queue()
+		p = Process(target=_actual_get_cpu_info_from_cpuid, args=(queue,))
 		p.start()
 
 		# Wait for the process to end, while it is still alive
@@ -1158,8 +1155,9 @@ def _get_cpu_info_from_cpuid():
 			return {}
 
 		# Return the result, only if there is something to read
-		if parent_conn.poll(0):
-			output = parent_conn.recv()
+		if not queue.empty():
+			output = queue.get()
+			#print(output)
 			return b64_to_obj(output)
 	except:
 		pass
