@@ -26,6 +26,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 CPUINFO_VERSION = (3, 3, 0)
+print("!!!!!!!!!!!!!!!!!!!!!!!!! fuuuuuuuuuuuuuuuuuuuuuu")
 
 import os, sys
 import glob
@@ -1101,8 +1102,8 @@ def _actual_get_cpu_info_from_cpuid(queue):
 	'''
 
 	# Pipe all output to nothing
-	sys.stdout = open(os.devnull, 'w')
-	sys.stderr = open(os.devnull, 'w')
+	#sys.stdout = open(os.devnull, 'w')
+	#sys.stderr = open(os.devnull, 'w')
 
 	print("!!!!!!! FIXME: Stop this function from printing to parent process output"); sys.stdout.flush()
 	# Get the CPU arch and bits
@@ -1194,7 +1195,7 @@ def _get_cpu_info_from_cpuid():
 		# Return the result, only if there is something to read
 		if not queue.empty():
 			output = queue.get()
-			#print(output)
+			print(output)
 			return b64_to_obj(output)
 	except:
 		pass
@@ -1836,6 +1837,8 @@ def get_cpu_info():
 	Returns the CPU info by using the best sources of information for your OS.
 	Returns {} if nothing is found.
 	'''
+
+	multiprocessing.freeze_support()
 
 	# Get the CPU arch and bits
 	arch, bits = parse_arch(DataSource.raw_arch_string)
