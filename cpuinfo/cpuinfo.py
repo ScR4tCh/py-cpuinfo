@@ -1118,12 +1118,17 @@ def actual_get_cpu_info_from_cpuid():
 	info = {k: v for k, v in info.items() if v}
 	return obj_to_b64(info)
 
+def actual_get_cpu_info_from_cpuid_process(conn):
+	conn.send(actual_get_cpu_info_from_cpuid())
+	conn.close()
+
 def _get_cpu_info_from_cpuid():
 	'''
 	Returns the CPU info gathered by querying the X86 cpuid register in a new process.
 	Returns {} on non X86 cpus.
 	Returns {} if SELinux is in enforcing mode.
 	'''
+	from multiprocessing import Process, Pipe
 
 	# Return {} if can't cpuid
 	if not DataSource.can_cpuid:
@@ -1136,11 +1141,30 @@ def _get_cpu_info_from_cpuid():
 	if not arch in ['X86_32', 'X86_64']:
 		return {}
 
-	returncode, output = run_and_get_stdout([sys.executable, "-c", "import cpuinfo; print(cpuinfo.actual_get_cpu_info_from_cpuid())"])
-	if returncode != 0:
+	print("!!!!!!! before"); sys.stdout.flush()
+	parent_conn, child_conn = Pipe()
+	p = Process(target=actual_get_cpu_info_from_cpuid_process, args=(child_conn,))
+	p.start()
+	while p.is_alive():
+		print("!!! loop"); sys.stdout.flush()
+		p.join(100)
+	print(p.exitcode)
+	if p.exitcode != 0:
 		return {}
+
+	print("!!!!!!! after"); sys.stdout.flush()
+	output = parent_conn.recv()
 	info = b64_to_obj(output)
+	print("!!!!!!! get"); sys.stdout.flush()
+	print(info)
 	return info
+
+	return {}
+	#returncode, output = run_and_get_stdout([sys.executable, "-c", "import cpuinfo; print(cpuinfo.actual_get_cpu_info_from_cpuid())"])
+	#if returncode != 0:
+	#	return {}
+	#info = b64_to_obj(output)
+	#return info
 
 def _get_cpu_info_from_proc_cpuinfo():
 	'''
@@ -1871,6 +1895,8 @@ def main():
 
 
 if __name__ == '__main__':
+	print('calling main ...'); sys.stdout.flush()
 	main()
 else:
+	print('calling _check_arch ...'); sys.stdout.flush()
 	_check_arch()
