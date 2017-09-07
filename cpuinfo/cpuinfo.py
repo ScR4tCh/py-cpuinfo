@@ -1061,7 +1061,7 @@ class CPUID(object):
 
 		return ticks
 
-def actual_get_cpu_info_from_cpuid():
+def _actual_get_cpu_info_from_cpuid(conn):
 	'''
 	Warning! This function has the potential to crash the Python runtime.
 	Do not call it directly. Use the _get_cpu_info_from_cpuid function instead.
@@ -1072,12 +1072,16 @@ def actual_get_cpu_info_from_cpuid():
 
 	# Return none if this is not an X86 CPU
 	if not arch in ['X86_32', 'X86_64']:
-		return obj_to_b64({})
+		conn.send(obj_to_b64({}))
+		conn.close()
+		return
 
 	# Return none if SE Linux is in enforcing mode
 	cpuid = CPUID()
 	if cpuid.is_selinux_enforcing:
-		return obj_to_b64({})
+		conn.send(obj_to_b64({}))
+		conn.close()
+		return
 
 	# Get the cpu info from the CPUID register
 	max_extension_support = cpuid.get_max_extension_support()
@@ -1116,10 +1120,7 @@ def actual_get_cpu_info_from_cpuid():
 	}
 
 	info = {k: v for k, v in info.items() if v}
-	return obj_to_b64(info)
-
-def actual_get_cpu_info_from_cpuid_process(conn):
-	conn.send(actual_get_cpu_info_from_cpuid())
+	conn.send(obj_to_b64(info))
 	conn.close()
 
 def _get_cpu_info_from_cpuid():
@@ -1141,30 +1142,20 @@ def _get_cpu_info_from_cpuid():
 	if not arch in ['X86_32', 'X86_64']:
 		return {}
 
-	print("!!!!!!! before"); sys.stdout.flush()
-	parent_conn, child_conn = Pipe()
-	p = Process(target=actual_get_cpu_info_from_cpuid_process, args=(child_conn,))
-	p.start()
-	while p.is_alive():
-		print("!!! loop"); sys.stdout.flush()
-		p.join(100)
-	print(p.exitcode)
-	if p.exitcode != 0:
+	try:
+		#print("!!!!!!! before"); sys.stdout.flush()
+		parent_conn, child_conn = Pipe()
+		p = Process(target=_actual_get_cpu_info_from_cpuid, args=(child_conn,))
+		p.start()
+		while p.is_alive():
+			p.join(100)
+		if p.exitcode != 0:
+			return {}
+
+		output = parent_conn.recv()
+		return b64_to_obj(output)
+	except:
 		return {}
-
-	print("!!!!!!! after"); sys.stdout.flush()
-	output = parent_conn.recv()
-	info = b64_to_obj(output)
-	print("!!!!!!! get"); sys.stdout.flush()
-	print(info)
-	return info
-
-	return {}
-	#returncode, output = run_and_get_stdout([sys.executable, "-c", "import cpuinfo; print(cpuinfo.actual_get_cpu_info_from_cpuid())"])
-	#if returncode != 0:
-	#	return {}
-	#info = b64_to_obj(output)
-	#return info
 
 def _get_cpu_info_from_proc_cpuinfo():
 	'''
@@ -1895,8 +1886,6 @@ def main():
 
 
 if __name__ == '__main__':
-	print('calling main ...'); sys.stdout.flush()
 	main()
 else:
-	print('calling _check_arch ...'); sys.stdout.flush()
 	_check_arch()
