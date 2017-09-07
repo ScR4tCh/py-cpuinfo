@@ -1067,6 +1067,11 @@ def _actual_get_cpu_info_from_cpuid(queue):
 	Do not call it directly. Use the _get_cpu_info_from_cpuid function instead.
 	It will safely call this function in another process.
 	'''
+
+	# Pipe all output to nothing
+	sys.stdout = open(os.devnull, 'w')
+	sys.stderr = open(os.devnull, 'w')
+
 	print("!!!!!!! FIXME: Stop this function from printing to parent process output"); sys.stdout.flush()
 	# Get the CPU arch and bits
 	arch, bits = parse_arch(DataSource.raw_arch_string)
