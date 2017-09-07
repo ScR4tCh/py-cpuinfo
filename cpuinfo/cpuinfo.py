@@ -1067,7 +1067,7 @@ def _actual_get_cpu_info_from_cpuid(conn):
 	Do not call it directly. Use the _get_cpu_info_from_cpuid function instead.
 	It will safely call this function in another process.
 	'''
-	print("!!!!!!! _actual_get_cpu_info_from_cpuid"); sys.stdout.flush()
+	print("!!!!!!! FIXME: Stop this function from printing to parent process output"); sys.stdout.flush()
 	# Get the CPU arch and bits
 	arch, bits = parse_arch(DataSource.raw_arch_string)
 
@@ -1144,13 +1144,12 @@ def _get_cpu_info_from_cpuid():
 		return {}
 
 	try:
-		#print("!!!!!!! before"); sys.stdout.flush()
 		# Start running the function in a subprocess
 		parent_conn, child_conn = Pipe()
 		p = Process(target=_actual_get_cpu_info_from_cpuid, args=(child_conn,))
 		p.start()
 
-		# Wait for the process while it is still alive
+		# Wait for the process to end, while it is still alive
 		while p.is_alive():
 			p.join(0)
 
