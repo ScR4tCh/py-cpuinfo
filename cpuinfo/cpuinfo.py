@@ -26,7 +26,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 CPUINFO_VERSION = (3, 3, 0)
-print("!!!!!!!!!!!!!!!!!!!!!!!!! fuuuuuuuuuuuuuuuuuuuuuu")
+print("!!!!!!!!!!!!!!! Loading cpuinfo: {0}".format(CPUINFO_VERSION))
 
 import os, sys
 import glob
@@ -49,7 +49,7 @@ except ImportError as err:
 
 PY2 = sys.version_info[0] == 2
 
-
+# Load hacks for Windows
 if platform.system().lower() == 'windows':
 	# BUG: https://github.com/workhorsy/py-cpuinfo/issues/80
 	try:
@@ -1105,7 +1105,6 @@ def _actual_get_cpu_info_from_cpuid(queue):
 	#sys.stdout = open(os.devnull, 'w')
 	#sys.stderr = open(os.devnull, 'w')
 
-	print("!!!!!!! FIXME: Stop this function from printing to parent process output"); sys.stdout.flush()
 	# Get the CPU arch and bits
 	arch, bits = parse_arch(DataSource.raw_arch_string)
 
@@ -1195,7 +1194,8 @@ def _get_cpu_info_from_cpuid():
 		# Return the result, only if there is something to read
 		if not queue.empty():
 			output = queue.get()
-			print(output)
+			print("!!!!!!!!!!!!!!!!!!!!! CPUID output:")
+			print(b64_to_obj(output))
 			return b64_to_obj(output)
 	except:
 		pass
