@@ -1,4 +1,6 @@
 
+import sys
+
 print("""
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 If this message is printed multiple times, the process has forked
@@ -6,7 +8,7 @@ and re-loaded all the modules. This happens in Python2 on Windows. It sucks,
 because the end user program will start another process too. This will also
 break prorgams that don't use if __name__ == '__main__' checks on start.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-""")
+"""); sys.stdout.flush()
 
 def crash_runtime(queue):
 	import os, sys
@@ -15,7 +17,7 @@ def crash_runtime(queue):
 	# Stop this process from printing to standard output
 	#sys.stdout = open(os.devnull, 'w')
 	#sys.stderr = open(os.devnull, 'w')
-	print("Running crash_runtime function ...")
+	print("Running crash_runtime function ..."); sys.stdout.flush()
 
 	# Crash the runtime by trying to write to the start of memory
 	memmove = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t)(ctypes._memmove_addr)
@@ -25,7 +27,7 @@ def crash_runtime(queue):
 	queue.put("Success!")
 
 def main():
-	print("Running main ...")
+	print("Running main ..."); sys.stdout.flush()
 	from multiprocessing import Process, Queue
 
 	# Start running the function in a subprocess
@@ -39,16 +41,16 @@ def main():
 
 	# Check if it failed
 	if p.exitcode != 0:
-		print("The subprocess failed!")
+		print("The subprocess failed!"); sys.stdout.flush()
 
 	# Return the result, only if there is something to read
 	if not queue.empty():
 		output = queue.get()
-		print("The subprocess returned: {0}".format(output))
+		print("The subprocess returned: {0}".format(output)); sys.stdout.flush()
 	else:
-		print("The subprocess didn't return anything")
+		print("The subprocess didn't return anything"); sys.stdout.flush()
 
-	print("Done!")
+	print("Done!"); sys.stdout.flush()
 
 
 if __name__ == '__main__':
